@@ -1939,6 +1939,7 @@ evdns_server_request_format_response(struct server_request *req, int err)
 	u16 t_;
 	u32 t32_;
 	int i;
+	int max_record_len = evdns_get_global_base()->global_max_record_len;
 	u16 flags;
 	struct dnslabel_table table;
 
@@ -2008,7 +2009,6 @@ evdns_server_request_format_response(struct server_request *req, int err)
 		}
 	}
 
-	int max_record_len = evdns_get_global_base()->global_max_record_len;
 	if (j > max_record_len) {
 	overflow:
 		j = max_record_len;

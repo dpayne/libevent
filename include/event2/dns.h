@@ -615,6 +615,7 @@ typedef void (*evdns_request_callback_fn_type)(struct evdns_server_request *, vo
 #define EVDNS_QTYPE_ALL	 255
 
 #define EVDNS_CLASS_INET   1
+#define EVDNS_CLASS_OPT    41
 
 /* flags that can be set in answers; as part of the err parameter */
 #define EVDNS_FLAGS_AA	0x400

@@ -1672,20 +1672,20 @@ dnsname_to_labels(u8 *const buf, size_t buf_len, off_t j,
 /* length. The actual request may be smaller than the value returned */
 /* here */
 static size_t
-evdns_request_len(const size_t name_len, const int max_record_len) {
+evdns_request_len(const size_t name_len, const int max_record_len)
+{
 	int extended_dns_len = 0;
 	// Length of a extended dns puesdo-Resource Record
-	if ( max_record_len > DEFAULT_MAX_PACKET_LENGTH ) {
+	if (max_record_len > DEFAULT_MAX_PACKET_LENGTH) {
 		extended_dns_len = 1 + /* length of domain name string, always 0 */
-			2 + /* space for resource type */
-			2 + /* space for UDP payload size */
-			4 + /* space for extended RCODE flags */
-			2; /* space for length of RDATA, always 0 */
+						   2 + /* space for resource type */
+						   2 + /* space for UDP payload size */
+						   4 + /* space for extended RCODE flags */
+						   2;  /* space for length of RDATA, always 0 */
 	}
 	return 96 + /* length of the DNS standard header */
-		name_len + 2 +
-		4  /* space for the resource type */ +
-		extended_dns_len;
+		   name_len + 2 + 4 /* space for the resource type */ +
+		   extended_dns_len;
 }
 
 /* build a dns request packet into buf. buf should be at least as long */
@@ -1694,8 +1694,9 @@ evdns_request_len(const size_t name_len, const int max_record_len) {
 /* Returns the amount of space used. Negative on error. */
 static int
 evdns_request_data_build(const char *const name, const size_t name_len,
-    const u16 trans_id, const u16 type, const u16 class,
-    u8 *const buf, size_t buf_len, int max_record_len) {
+	const u16 trans_id, const u16 type, const u16 class, u8 *const buf,
+	size_t buf_len, int max_record_len)
+{
 	off_t j = 0;  /* current offset into buf */
 	u16 t_;	 /* used by the macros */
 
@@ -1704,10 +1705,11 @@ evdns_request_data_build(const char *const name, const size_t name_len,
 	APPEND16(1);  /* one question */
 	APPEND16(0);  /* no answers */
 	APPEND16(0);  /* no authority */
-	if ( max_record_len > DEFAULT_MAX_PACKET_LENGTH ) {
-		APPEND16(1);  /* 1 additional record for the pseudo resource record used by extended dns */
+	if (max_record_len > DEFAULT_MAX_PACKET_LENGTH) {
+		APPEND16(1); /* 1 additional record for the pseudo resource record used
+						by extended dns */
 	} else {
-		APPEND16(0);  /* no additional */
+		APPEND16(0); /* no additional */
 	}
 
 	j = dnsname_to_labels(buf, buf_len, j, name, name_len, NULL);
@@ -1720,29 +1722,29 @@ evdns_request_data_build(const char *const name, const size_t name_len,
 
 
 	/* structure of the extended dns record
-	* +------------+--------------+------------------------------+
-	* | Field Name | Field Type   | Description                  |
-	* +------------+--------------+------------------------------+
-	* | NAME       | domain name  | MUST be 0 (root domain)      |
-	* | TYPE       | u_int16_t    | OPT (41)                     |
-	* | CLASS      | u_int16_t    | requestor's UDP payload size |
-	* | TTL        | u_int32_t    | extended RCODE and flags     |
-	* | RDLEN      | u_int16_t    | length of all RDATA          |
-	* | RDATA      | octet stream | {attribute,value} pairs      |
-	* +------------+--------------+------------------------------+ */
-	if ( max_record_len > DEFAULT_MAX_PACKET_LENGTH ) {
-		buf[j++] = 0; // NAME, always 0
-		APPEND16(CLASS_OPT); // OPT type
+	 * +------------+--------------+------------------------------+
+	 * | Field Name | Field Type   | Description                  |
+	 * +------------+--------------+------------------------------+
+	 * | NAME       | domain name  | MUST be 0 (root domain)      |
+	 * | TYPE       | u_int16_t    | OPT (41)                     |
+	 * | CLASS      | u_int16_t    | requestor's UDP payload size |
+	 * | TTL        | u_int32_t    | extended RCODE and flags     |
+	 * | RDLEN      | u_int16_t    | length of all RDATA          |
+	 * | RDATA      | octet stream | {attribute,value} pairs      |
+	 * +------------+--------------+------------------------------+ */
+	if (max_record_len > DEFAULT_MAX_PACKET_LENGTH) {
+		buf[j++] = 0;			  // NAME, always 0
+		APPEND16(CLASS_OPT);	  // OPT type
 		APPEND16(max_record_len); // max UDP payload size
-		APPEND16(0); // No extended RCODE flags set
-		APPEND16(0); // No extended RCODE flags set
-		APPEND16(0); // RDATA is always 0 length
+		APPEND16(0);			  // No extended RCODE flags set
+		APPEND16(0);			  // No extended RCODE flags set
+		APPEND16(0);			  // RDATA is always 0 length
 	}
 
 	return (int)j;
  overflow:
 	return (-1);
-}
+ }
 
 /* exported function */
 struct evdns_server_port *
@@ -2008,7 +2010,7 @@ evdns_server_request_format_response(struct server_request *req, int err)
 
 	int max_record_len = evdns_get_global_base()->global_max_record_len;
 	if (j > max_record_len) {
-overflow:
+	overflow:
 		j = max_record_len;
 		buf[2] |= 0x02; /* set the truncated bit. */
 	}
@@ -2839,8 +2841,8 @@ request_new(struct evdns_base *base, struct evdns_request *handle, int type,
 	req->request = ((u8 *) req) + sizeof(struct request);
 	/* denotes that the request data shouldn't be free()ed */
 	req->request_appended = 1;
-	rlen = evdns_request_data_build(name, name_len, trans_id,
-	    type, CLASS_INET, req->request, request_max_len, max_record_len);
+	rlen = evdns_request_data_build(name, name_len, trans_id, type, CLASS_INET,
+		req->request, request_max_len, max_record_len);
 	if (rlen < 0)
 		goto err1;
 
@@ -3556,11 +3558,11 @@ evdns_base_set_option_impl(struct evdns_base *base,
 		    val);
 		memcpy(&base->global_nameserver_probe_initial_timeout, &tv,
 		    sizeof(tv));
-    } else if (str_matches_option(option, "max-record-len:")) {
-        int max_record_len = strtoint(val);
-        base->global_max_record_len = max_record_len;
-    }
-    return 0;
+	} else if (str_matches_option(option, "max-record-len:")) {
+		int max_record_len = strtoint(val);
+		base->global_max_record_len = max_record_len;
+	}
+	return 0;
 }
 
 int

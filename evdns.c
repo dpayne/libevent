@@ -255,7 +255,6 @@ struct evdns_server_port {
 	/* circular list of replies that we want to write. */
 	struct server_request *pending_replies;
 	struct event_base *event_base;
-	int max_record_len; /* Maximum size in bytes of a UDP response */
 
 #ifndef EVENT__DISABLE_THREAD_SUPPORT
 	void *lock;

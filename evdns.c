@@ -1383,9 +1383,8 @@ nameserver_read(struct nameserver *ns) {
 	u8 *packet = malloc(max_record_len);
 
 	for (;;) {
-		const int r = recvfrom(ns->socket, (void*)packet,
-		    sizeof(max_record_len), 0,
-		    (struct sockaddr*)&ss, &addrlen);
+		const int r = recvfrom(ns->socket, (void *)packet, max_record_len, 0,
+			(struct sockaddr *)&ss, &addrlen);
 		if (r < 0) {
 			int err = evutil_socket_geterror(ns->socket);
 			if (EVUTIL_ERR_RW_RETRIABLE(err))

@@ -255,6 +255,7 @@ struct evdns_server_port {
 	/* circular list of replies that we want to write. */
 	struct server_request *pending_replies;
 	struct event_base *event_base;
+	int max_record_len; /* Maximum size in bytes of a UDP response */
 
 #ifndef EVENT__DISABLE_THREAD_SUPPORT
 	void *lock;
@@ -337,6 +338,9 @@ struct evdns_base {
 	int global_max_nameserver_timeout;
 	/* true iff we will use the 0x20 hack to prevent poisoning attacks. */
 	int global_randomize_case;
+
+	/* Support extended dns records */
+	int global_edns0;
 
 	/* Maximum record length of a DNS packet, default is 512 bytes */
 	int global_max_record_len;
@@ -1939,7 +1943,6 @@ evdns_server_request_format_response(struct server_request *req, int err)
 	u16 t_;
 	u32 t32_;
 	int i;
-	int max_record_len = evdns_get_global_base()->global_max_record_len;
 	u16 flags;
 	struct dnslabel_table table;
 
@@ -2009,9 +2012,8 @@ evdns_server_request_format_response(struct server_request *req, int err)
 		}
 	}
 
-	if (j > max_record_len) {
+	if (j > DEFAULT_MAX_PACKET_LENGTH) {
 	overflow:
-		j = max_record_len;
 		buf[2] |= 0x02; /* set the truncated bit. */
 	}
 
@@ -2797,7 +2799,7 @@ request_new(struct evdns_base *base, struct evdns_request *handle, int type,
 	    (base->global_requests_inflight < base->global_max_requests_inflight) ? 1 : 0;
 
 	const size_t name_len = strlen(name);
-	const int max_record_len = base->global_max_record_len;
+	int max_record_len = DEFAULT_MAX_PACKET_LENGTH;
 	const size_t request_max_len = evdns_request_len(name_len, max_record_len);
 	const u16 trans_id = issuing_now ? transaction_id_pick(base) : 0xffff;
 	/* the request data is alloced in a single block with the header */
@@ -2808,6 +2810,8 @@ request_new(struct evdns_base *base, struct evdns_request *handle, int type,
 	(void) flags;
 
 	ASSERT_LOCKED(base);
+	if (base->global_edns0)
+		max_record_len = base->global_max_record_len;
 
 	if (!req) return NULL;
 
@@ -3561,6 +3565,8 @@ evdns_base_set_option_impl(struct evdns_base *base,
 	} else if (str_matches_option(option, "max-record-len:")) {
 		int max_record_len = strtoint(val);
 		base->global_max_record_len = max_record_len;
+	} else if (str_matches_option(option, "edns0:")) {
+		base->global_edns0 = 1;
 	}
 	return 0;
 }
@@ -3988,6 +3994,7 @@ evdns_base_new(struct event_base *event_base, int flags)
 	base->global_max_nameserver_timeout = 3;
 	base->global_search_state = NULL;
 	base->global_randomize_case = 1;
+	base->global_edns0 = 0;
 	base->global_max_record_len = DEFAULT_MAX_PACKET_LENGTH;
 	base->global_getaddrinfo_allow_skew.tv_sec = 3;
 	base->global_getaddrinfo_allow_skew.tv_usec = 0;

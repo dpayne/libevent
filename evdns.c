@@ -1377,13 +1377,14 @@ static void
 nameserver_read(struct nameserver *ns) {
 	struct sockaddr_storage ss;
 	ev_socklen_t addrlen = sizeof(ss);
-	u8 packet[1500];
 	char addrbuf[128];
 	ASSERT_LOCKED(ns->base);
+	int max_record_len = ns->base->global_max_record_len;
+	u8 *packet = malloc(max_record_len);
 
 	for (;;) {
 		const int r = recvfrom(ns->socket, (void*)packet,
-		    sizeof(packet), 0,
+		    sizeof(max_record_len), 0,
 		    (struct sockaddr*)&ss, &addrlen);
 		if (r < 0) {
 			int err = evutil_socket_geterror(ns->socket);
@@ -1406,6 +1407,8 @@ nameserver_read(struct nameserver *ns) {
 		ns->timedout = 0;
 		reply_parse(ns->base, packet, r);
 	}
+done:
+	free(packet);
 }
 
 /* Read a packet from a DNS client on a server port s, parse it, and */
@@ -1939,7 +1942,6 @@ evdns_server_request_format_response(struct server_request *req, int err)
 	u16 t_;
 	u32 t32_;
 	int i;
-	int max_record_len = evdns_get_global_base()->global_max_record_len;
 	u16 flags;
 	struct dnslabel_table table;
 
@@ -2009,9 +2011,8 @@ evdns_server_request_format_response(struct server_request *req, int err)
 		}
 	}
 
-	if (j > max_record_len) {
+	if (j > DEFAULT_MAX_PACKET_LENGTH) {
 	overflow:
-		j = max_record_len;
 		buf[2] |= 0x02; /* set the truncated bit. */
 	}
 
@@ -2793,6 +2794,8 @@ request_new(struct evdns_base *base, struct evdns_request *handle, int type,
 	    const char *name, int flags, evdns_callback_type callback,
 	    void *user_ptr) {
 
+	ASSERT_LOCKED(base);
+
 	const char issuing_now =
 	    (base->global_requests_inflight < base->global_max_requests_inflight) ? 1 : 0;
 
@@ -2806,8 +2809,6 @@ request_new(struct evdns_base *base, struct evdns_request *handle, int type,
 	int rlen;
 	char namebuf[256];
 	(void) flags;
-
-	ASSERT_LOCKED(base);
 
 	if (!req) return NULL;
 
